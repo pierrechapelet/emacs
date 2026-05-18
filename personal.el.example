@@ -1,0 +1,6 @@
+;;; personal.el.example --- Template for personal.el -*- lexical-binding: t -*-
+;; Copy this file to personal.el and fill in your own values.
+
+(defvar my/full-name "Your Name")
+(defvar my/gmail-address "you@gmail.com")
+(defvar my/proton-address "you@protonmail.com")

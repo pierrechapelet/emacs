@@ -16,6 +16,9 @@ tramp
 bookmarks
 places
 
+# Personal identifiers — keep off git
+personal.el
+
 # Lock and temp files
 \#*\#
 .\#*

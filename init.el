@@ -6,6 +6,9 @@
 
 ;;; Code:
 
+;; Load personal identifiers (gitignored — copy personal.el.example if missing)
+(load (expand-file-name "personal.el" user-emacs-directory) t)
+
 ;; === Package bootstrap ===
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
@@ -361,8 +364,8 @@
                         (when msg
                           (string-prefix-p "/gmail"
                             (mu4e-message-field msg :maildir))))
-          :vars '((user-mail-address       . "chapelet@gmail.com")
-                  (user-full-name          . "Pierre Chapelet")
+          :vars `((user-mail-address       . ,my/gmail-address)
+                  (user-full-name          . ,my/full-name)
                   (mu4e-inbox-folder       . "/gmail/INBOX")
                   (mu4e-sent-folder        . "/gmail/[Gmail]/Sent Mail")
                   (mu4e-drafts-folder      . "/gmail/[Gmail]/Drafts")
@@ -377,8 +380,8 @@
                         (when msg
                           (string-prefix-p "/proton"
                             (mu4e-message-field msg :maildir))))
-          :vars '((user-mail-address       . "p.chapelet@protonmail.com")
-                  (user-full-name          . "Pierre Chapelet")
+          :vars `((user-mail-address       . ,my/proton-address)
+                  (user-full-name          . ,my/full-name)
                   (mu4e-inbox-folder       . "/proton/INBOX")
                   (mu4e-sent-folder        . "/proton/Sent")
                   (mu4e-drafts-folder      . "/proton/Drafts")
