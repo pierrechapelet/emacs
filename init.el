@@ -157,7 +157,9 @@
 
 (org-babel-do-load-languages 'org-babel-load-languages
                               '((python . t)
-                                (shell  . t)))
+                                (shell  . t)
+                                (R      . t)
+                                (sql    . t)))
 
 ;; === GTD / Org ===
 (use-package org
