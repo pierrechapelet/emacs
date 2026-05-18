@@ -1,0 +1,22 @@
+# Generated state — do not track
+elpa/
+eln-cache/
+auto-save-list/
+transient/
+org-persist/
+image-dired/
+dirvish/
+
+# Emacs auto-managed files
+custom.el
+recentf
+history
+projects
+tramp
+bookmarks
+places
+
+# Lock and temp files
+\#*\#
+.\#*
+*.elc
