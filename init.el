@@ -349,7 +349,8 @@
         mu4e-compose-dont-reply-to-self t
         mu4e-confirm-quit           nil
         message-kill-buffer-on-exit t
-        mu4e-use-fancy-chars        t)
+        mu4e-use-fancy-chars        t
+        mu4e-attachment-dir        "~/Downloads")
 
   ;; SMTP via macOS Keychain
   (require 'smtpmail)
