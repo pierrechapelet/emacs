@@ -333,6 +333,64 @@
 
 (setq claude-code-ide-terminal-backend 'vterm)
 
+;; === Email (mu4e) ===
+(use-package mu4e
+  :ensure nil
+  :load-path "/usr/local/share/emacs/site-lisp/mu/mu4e"
+  :bind ("C-c m" . mu4e)
+  :config
+  (setq mu4e-maildir          "~/Maildir"
+        mu4e-get-mail-command "mbsync -a"
+        mu4e-update-interval  300
+        mu4e-view-show-addresses    t
+        mu4e-compose-dont-reply-to-self t
+        mu4e-confirm-quit           nil
+        message-kill-buffer-on-exit t
+        mu4e-use-fancy-chars        t)
+
+  ;; SMTP via macOS Keychain
+  (require 'smtpmail)
+  (setq message-send-mail-function 'smtpmail-send-it
+        auth-sources '(macos-keychain-internet macos-keychain-generic))
+
+  (setq mu4e-contexts
+        (list
+         (make-mu4e-context
+          :name "Gmail"
+          :match-func (lambda (msg)
+                        (when msg
+                          (string-prefix-p "/gmail"
+                            (mu4e-message-field msg :maildir))))
+          :vars '((user-mail-address       . "chapelet@gmail.com")
+                  (user-full-name          . "Pierre Chapelet")
+                  (mu4e-inbox-folder       . "/gmail/INBOX")
+                  (mu4e-sent-folder        . "/gmail/[Gmail]/Sent Mail")
+                  (mu4e-drafts-folder      . "/gmail/[Gmail]/Drafts")
+                  (mu4e-trash-folder       . "/gmail/[Gmail]/Trash")
+                  (mu4e-refile-folder      . "/gmail/INBOX")
+                  (smtpmail-smtp-server    . "smtp.gmail.com")
+                  (smtpmail-smtp-service   . 587)
+                  (smtpmail-stream-type    . starttls)))
+         (make-mu4e-context
+          :name "Proton"
+          :match-func (lambda (msg)
+                        (when msg
+                          (string-prefix-p "/proton"
+                            (mu4e-message-field msg :maildir))))
+          :vars '((user-mail-address       . "p.chapelet@protonmail.com")
+                  (user-full-name          . "Pierre Chapelet")
+                  (mu4e-inbox-folder       . "/proton/INBOX")
+                  (mu4e-sent-folder        . "/proton/Sent")
+                  (mu4e-drafts-folder      . "/proton/Drafts")
+                  (mu4e-trash-folder       . "/proton/Trash")
+                  (mu4e-refile-folder      . "/proton/Archive")
+                  (smtpmail-smtp-server    . "127.0.0.1")
+                  (smtpmail-smtp-service   . 1025)
+                  (smtpmail-stream-type    . ssl)))))
+
+  (setq mu4e-context-policy         'pick-first
+        mu4e-compose-context-policy 'ask-if-none))
+
 (message (emacs-init-time))
 
 (provide 'init)
