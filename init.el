@@ -159,6 +159,87 @@
                               '((python . t)
                                 (shell  . t)))
 
+;; === GTD / Org ===
+(use-package org
+  :ensure nil
+  :bind (("C-c c" . org-capture)
+         ("C-c a" . org-agenda))
+  :config
+  (setq org-directory "~/ORG/"
+        org-agenda-files '("~/ORG/inbox.org"
+                           "~/ORG/gtd.org"
+                           "~/ORG/tickler.org"))
+
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "NEXT(n)" "WAITING(w@/!)" "|" "DONE(d!)" "CANCELLED(c@)")))
+
+  (setq org-todo-keyword-faces
+        '(("TODO"      . (:foreground "orange"  :weight bold))
+          ("NEXT"      . (:foreground "cyan"    :weight bold))
+          ("WAITING"   . (:foreground "magenta" :weight bold))
+          ("CANCELLED" . (:foreground "gray"    :weight bold))))
+
+  (setq org-capture-templates
+        '(("i" "Inbox" entry (file "~/ORG/inbox.org")
+           "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n")
+          ("t" "Tickler" entry (file "~/ORG/tickler.org")
+           "* TODO %?\nSCHEDULED: %^t\n")))
+
+  (setq org-refile-targets
+        '(("~/ORG/gtd.org"     :maxlevel . 2)
+          ("~/ORG/someday.org" :level    . 1)
+          ("~/ORG/tickler.org" :maxlevel . 2)))
+  (setq org-refile-use-outline-path        'file
+        org-outline-path-complete-in-steps nil
+        org-refile-allow-creating-parent-nodes 'confirm)
+
+  (setq org-tag-alist '(("@computer" . ?c)
+                        ("@phone"    . ?p)
+                        ("@home"     . ?h)
+                        ("@errands"  . ?e)
+                        ("@office"   . ?o)
+                        (:newline)
+                        ("PROJECT"   . ?P)))
+
+  ;; Stuck = PROJECT heading with no NEXT child
+  (setq org-stuck-projects
+        '("+PROJECT/-DONE-CANCELLED" ("NEXT") nil ""))
+
+  (setq org-archive-location "~/ORG/archive.org::* From %s")
+  (setq org-log-done              'time
+        org-log-into-drawer       t
+        org-use-fast-todo-selection t)
+
+  (setq org-agenda-custom-commands
+        '(("g" "GTD Dashboard"
+           ((agenda "" ((org-agenda-span 'day)))
+            (todo "NEXT"
+                  ((org-agenda-overriding-header "Next Actions")
+                   (org-agenda-skip-function
+                    '(org-agenda-skip-entry-if 'scheduled 'deadline))))
+            (todo "WAITING"
+                  ((org-agenda-overriding-header "Waiting For")))
+            (stuck ""
+                   ((org-agenda-overriding-header "Stuck Projects")))
+            (todo "TODO"
+                  ((org-agenda-overriding-header "Inbox (unprocessed)")
+                   (org-agenda-files '("~/ORG/inbox.org"))))))
+
+          ("c" "By Context"
+           ((tags-todo "@computer" ((org-agenda-overriding-header "@computer")))
+            (tags-todo "@phone"    ((org-agenda-overriding-header "@phone")))
+            (tags-todo "@home"     ((org-agenda-overriding-header "@home")))
+            (tags-todo "@errands"  ((org-agenda-overriding-header "@errands")))
+            (tags-todo "@office"   ((org-agenda-overriding-header "@office")))))
+
+          ("r" "Weekly Review"
+           ((agenda "" ((org-agenda-span 7)))
+            (stuck "")
+            (todo "WAITING" ((org-agenda-overriding-header "Waiting For")))
+            (todo "TODO"
+                  ((org-agenda-overriding-header "Inbox to process")
+                   (org-agenda-files '("~/ORG/inbox.org")))))))))
+
 (use-package htmlize)
 
 (use-package markdown-mode
