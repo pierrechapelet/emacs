@@ -166,46 +166,61 @@
 ;; === GTD / Org ===
 (use-package org
   :ensure nil
-  :bind (("C-c c" . org-capture)
-         ("C-c a" . org-agenda))
+  :bind (("C-c c"   . org-capture)
+         ("C-c a"   . org-agenda)
+         ("C-c o h" . consult-org-heading))
   :config
   (setq org-directory "~/ORG/"
         org-agenda-files '("~/ORG/inbox.org"
                            "~/ORG/gtd.org"
-                           "~/ORG/tickler.org"))
+                           "~/ORG/tickler.org"
+                           "~/ORG/projects.org"))
 
   (setq org-todo-keywords
-        '((sequence "TODO(t)" "NEXT(n)" "WAITING(w@/!)" "|" "DONE(d!)" "CANCELLED(c@)")))
+        '((sequence "ACTIVE(a)" "HOLD(h@)" "|" "DONE(d!)" "CANCELLED(c@)")
+          (sequence "TODO(t)" "NEXT(n)" "WAITING(w@/!)" "|" "DONE(d!)" "CANCELLED(c@)")))
 
   (setq org-todo-keyword-faces
-        '(("TODO"      . (:foreground "orange"  :weight bold))
-          ("NEXT"      . (:foreground "cyan"    :weight bold))
-          ("WAITING"   . (:foreground "magenta" :weight bold))
-          ("CANCELLED" . (:foreground "gray"    :weight bold))))
+        '(("TODO"      . (:foreground "orange"   :weight bold))
+          ("NEXT"      . (:foreground "cyan"     :weight bold))
+          ("WAITING"   . (:foreground "magenta"  :weight bold))
+          ("ACTIVE"    . (:foreground "#00ff5f"  :weight bold))
+          ("HOLD"      . (:foreground "yellow"   :weight bold))
+          ("CANCELLED" . (:foreground "gray"     :weight bold))))
 
   (setq org-capture-templates
         '(("i" "Inbox" entry (file "~/ORG/inbox.org")
            "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n")
           ("t" "Tickler" entry (file "~/ORG/tickler.org")
-           "* TODO %?\nSCHEDULED: %^t\n")))
+           "* TODO %?\nSCHEDULED: %^t\n")
+          ("p" "UNESCO Project" entry (file+headline "~/ORG/projects.org" "Projects")
+           "* ACTIVE %?  :PROJECT:\n  :PROPERTIES:\n  :REGION:    \n  :COUNTRIES: \n  :TYPE:      Global/Regional/Country\n  :PARTNER:   \n  :END:\n  %U\n\n*** TODO [first next action]\n")))
 
   (setq org-refile-targets
-        '(("~/ORG/gtd.org"     :maxlevel . 2)
-          ("~/ORG/someday.org" :level    . 1)
-          ("~/ORG/tickler.org" :maxlevel . 2)))
+        '(("~/ORG/gtd.org"      :maxlevel . 2)
+          ("~/ORG/projects.org" :maxlevel . 3)
+          ("~/ORG/someday.org"  :level    . 1)
+          ("~/ORG/tickler.org"  :maxlevel . 2)))
   (setq org-refile-use-outline-path        'file
         org-outline-path-complete-in-steps nil
         org-refile-allow-creating-parent-nodes 'confirm)
 
-  (setq org-tag-alist '(("@computer" . ?c)
-                        ("@phone"    . ?p)
-                        ("@home"     . ?h)
-                        ("@errands"  . ?e)
-                        ("@office"   . ?o)
+  (setq org-tag-alist '(("@computer"    . ?c)
+                        ("@phone"       . ?p)
+                        ("@home"        . ?h)
+                        ("@errands"     . ?e)
+                        ("@office"      . ?o)
                         (:newline)
-                        ("PROJECT"   . ?P)))
+                        ("PROJECT"      . ?P)
+                        (:newline)
+                        ("Global"       . ?G)
+                        ("Africa"       . ?A)
+                        ("AsiaPacific"  . ?X)
+                        ("Europe"       . ?E)
+                        ("LatinAmerica" . ?L)
+                        ("ArabStates"   . ?B)))
 
-  ;; Stuck = PROJECT heading with no NEXT child
+  ;; Stuck = PROJECT-tagged heading with no NEXT child
   (setq org-stuck-projects
         '("+PROJECT/-DONE-CANCELLED" ("NEXT") nil ""))
 
@@ -242,7 +257,28 @@
             (todo "WAITING" ((org-agenda-overriding-header "Waiting For")))
             (todo "TODO"
                   ((org-agenda-overriding-header "Inbox to process")
-                   (org-agenda-files '("~/ORG/inbox.org")))))))))
+                   (org-agenda-files '("~/ORG/inbox.org"))))))
+
+          ;; UNESCO project views (all scoped to projects.org)
+          ("u" . "UNESCO Projects")
+          ("us" "All Active Projects" todo "ACTIVE"
+           ((org-agenda-files '("~/ORG/projects.org"))
+            (org-agenda-overriding-header "All Active UNESCO Projects")))
+          ("ug" "Global" tags "+Global+PROJECT"
+           ((org-agenda-files '("~/ORG/projects.org"))))
+          ("ua" "Africa" tags "+Africa+PROJECT"
+           ((org-agenda-files '("~/ORG/projects.org"))))
+          ("ub" "Arab States" tags "+ArabStates+PROJECT"
+           ((org-agenda-files '("~/ORG/projects.org"))))
+          ("ux" "Asia-Pacific" tags "+AsiaPacific+PROJECT"
+           ((org-agenda-files '("~/ORG/projects.org"))))
+          ("ue" "Europe" tags "+Europe+PROJECT"
+           ((org-agenda-files '("~/ORG/projects.org"))))
+          ("ul" "Latin America & Caribbean" tags "+LatinAmerica+PROJECT"
+           ((org-agenda-files '("~/ORG/projects.org"))))
+          ("uT" "All UNESCO Tasks" todo "TODO|NEXT|WAITING"
+           ((org-agenda-files '("~/ORG/projects.org"))
+            (org-agenda-overriding-header "All UNESCO Tasks"))))))
 
 (use-package htmlize)
 
