@@ -171,12 +171,16 @@
                                 (R      . t)
                                 (sql    . t)))
 
+(defun my/consult-org-heading-all ()
+  (interactive)
+  (consult-org-heading nil '(agenda all)))
+
 ;; === GTD / Org ===
 (use-package org
   :ensure nil
   :bind (("C-c c"   . org-capture)
          ("C-c a"   . org-agenda)
-         ("C-c o h" . (lambda () (interactive) (consult-org-heading nil '(agenda all)))))
+         ("C-c o h" . my/consult-org-heading-all))
   :config
   (setq org-directory "~/ORG/"
         org-agenda-files '("~/ORG/inbox.org"
