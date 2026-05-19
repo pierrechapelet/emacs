@@ -49,10 +49,7 @@
                       my/windowed-font-height)))
     (set-face-attribute 'default frame :height height)))
 
-(defun my/schedule-font-adjust (&rest _)
-  (run-with-timer 0.5 nil #'my/apply-font-for-frame (selected-frame)))
-
-(advice-add 'toggle-frame-fullscreen :after #'my/schedule-font-adjust)
+(add-hook 'window-size-change-functions #'my/apply-font-for-frame)
 
 (setq inhibit-startup-message t
       column-number-mode t
@@ -226,7 +223,17 @@
                          '("~/ORG/reference.org"
                            "~/ORG/someday.org"
                            "~/ORG/contacts.org")))))
-    (consult-org-heading nil 'agenda)))
+    (minibuffer-with-setup-hook
+        (lambda ()
+          ;; Neutralise org heading height scaling so candidates render at
+          ;; base font size rather than 1.4×/1.25×/1.1× in the picker.
+          (let ((cookies (list (face-remap-add-relative 'org-level-1 :height (/ 1.0 1.4))
+                               (face-remap-add-relative 'org-level-2 :height (/ 1.0 1.25))
+                               (face-remap-add-relative 'org-level-3 :height (/ 1.0 1.1)))))
+            (add-hook 'minibuffer-exit-hook
+                      (lambda () (mapc #'face-remap-remove-relative cookies))
+                      nil t)))
+      (consult-org-heading nil 'agenda))))
 
 (use-package org
   :ensure nil
@@ -269,15 +276,15 @@
           ("t" "Tickler" entry (file "~/ORG/tickler.org")
            "* TODO %?\nSCHEDULED: %^t\n")
           ("p" "UNESCO Project" entry (file+headline "~/ORG/projects.org" "Projects")
-           "* ACTIVE %?  :PROJECT:\n  :PROPERTIES:\n  :REGION:    \n  :COUNTRIES: \n  :TYPE:      Global/Regional/Country\n  :PARTNER:   \n  :END:\n  %U\n\n*** TODO [first next action]\n")
+           "* ACTIVE %^{Project title}  :PROJECT:\n  :PROPERTIES:\n  :REGION:    \n  :COUNTRIES: \n  :TYPE:      Global/Regional/Country\n  :PARTNER:   \n  :END:\n  %U\n\n*** TODO [first next action]\n")
           ("n" "Reference Note" entry (file "~/ORG/reference.org")
            "* %?\n  %U\n  %a")
           ("o" "Opportunity" entry (file+headline "~/ORG/opportunities.org" "Pipeline")
-           "* LEAD %?  :Opportunity:\n  :PROPERTIES:\n  :STAGE:    Lead\n  :REGION:   \n  :COUNTRIES: \n  :CONTACT:  \n  :VALUE:    \n  :CLOSE:    %^t\n  :SOURCE:   \n  :END:\n  %U\n\n*** TODO [next action]\n")
+           "* LEAD %^{Opportunity title}  :Opportunity:\n  :PROPERTIES:\n  :STAGE:    Lead\n  :REGION:   \n  :COUNTRIES: \n  :CONTACT:  \n  :VALUE:    \n  :CLOSE:    %^t\n  :SOURCE:   \n  :END:\n  %U\n\n*** TODO [next action]\n")
           ("C" "Contact" entry (file+headline "~/ORG/contacts.org" "Contacts")
-           "* %?\n  :PROPERTIES:\n  :EMAIL:    \n  :PHONE:    \n  :ORG:      \n  :ROLE:     \n  :REGION:   \n  :LAST_CONTACT: %U\n  :END:\n")
+           "* %^{Name — full name}\n  :PROPERTIES:\n  :EMAIL:    \n  :PHONE:    \n  :ORG:      \n  :ROLE:     \n  :REGION:   \n  :LAST_CONTACT: %U\n  :END:\n")
           ("m" "Meeting Note" entry (file+headline "~/ORG/meetings.org" "Meetings")
-           "* %<%Y-%m-%d> %^{Meeting title}  :Meeting:\n  :PROPERTIES:\n  :ATTENDEES: %^\n  :PROJECT:   \n  :REGION:    \n  :COUNTRIES: \n  :END:\n  %T\n\n** Notes\n   %?\n\n** Action Items\n"
+           "* %<%Y-%m-%d> %^{Meeting title}  :Meeting:\n  :PROPERTIES:\n  :ATTENDEES: %^{Attendees — names, comma-separated (e.g. Alice, Bob)}\n  :PROJECT:   \n  :REGION:    \n  :COUNTRIES: \n  :END:\n  %T\n\n** Notes\n   %?\n\n** Action Items\n"
            :empty-lines 1)))
 
   (setq org-refile-targets
