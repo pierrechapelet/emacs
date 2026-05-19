@@ -38,6 +38,22 @@
 
 (set-face-attribute 'default nil :height 130)
 
+(defvar my/windowed-font-height 130)
+(defvar my/fullscreen-font-height 160)
+
+(defun my/apply-font-for-frame (&optional frame)
+  (let* ((frame     (or frame (selected-frame)))
+         (fullscreen (frame-parameter frame 'fullscreen))
+         (height    (if (memq fullscreen '(fullscreen fullboth))
+                        my/fullscreen-font-height
+                      my/windowed-font-height)))
+    (set-face-attribute 'default frame :height height)))
+
+(defun my/schedule-font-adjust (&rest _)
+  (run-with-timer 0.5 nil #'my/apply-font-for-frame (selected-frame)))
+
+(advice-add 'toggle-frame-fullscreen :after #'my/schedule-font-adjust)
+
 (setq inhibit-startup-message t
       column-number-mode t
       split-height-threshold nil
@@ -172,6 +188,35 @@
                                 (sql    . t)))
 
 ;; === GTD / Org ===
+(require 'org-geo-data (expand-file-name "org-geo-data.el" user-emacs-directory))
+
+(defun my/org-set-countries ()
+  "Set :COUNTRIES: on current heading via multi-select from UN ISO list."
+  (interactive)
+  (let* ((current (org-entry-get nil "COUNTRIES"))
+         (initial (when (and current (> (length current) 0))
+                    (mapconcat #'identity (split-string current) ", ")))
+         (selected (completing-read-multiple "Countries: " my/un-countries nil t initial))
+         (value    (mapconcat #'identity selected " ")))
+    (org-set-property "COUNTRIES" value)))
+
+(defun my/org-set-region ()
+  "Set :REGION: property and sync the geographic heading tag for agenda filtering."
+  (interactive)
+  (let* ((current  (or (org-entry-get nil "REGION") ""))
+         (selected (completing-read "Region: " my/unesco-regions nil t current)))
+    (org-set-property "REGION" selected)
+    (dolist (r my/unesco-regions) (org-toggle-tag r 'off))
+    (org-toggle-tag selected 'on)))
+
+(defun my/org-property-picker-advice (orig property &optional value)
+  (cond
+   ((and (string= property "COUNTRIES") (null value)) (my/org-set-countries))
+   ((and (string= property "REGION")    (null value)) (my/org-set-region))
+   (t (funcall orig property value))))
+
+(advice-add 'org-set-property :around #'my/org-property-picker-advice)
+
 (defun my/consult-org-all-headings ()
   "Fuzzy search headings across all GTD/UNESCO org files (agenda + reference/someday/contacts)."
   (interactive)
@@ -187,7 +232,9 @@
   :ensure nil
   :bind (("C-c c"   . org-capture)
          ("C-c a"   . org-agenda)
-         ("C-c o h" . my/consult-org-all-headings))
+         ("C-c o h" . my/consult-org-all-headings)
+         ("C-c o c" . my/org-set-countries)
+         ("C-c o r" . my/org-set-region))
   :config
   (setq org-directory "~/ORG/"
         org-agenda-files '("~/ORG/inbox.org"
@@ -228,7 +275,10 @@
           ("o" "Opportunity" entry (file+headline "~/ORG/opportunities.org" "Pipeline")
            "* LEAD %?  :Opportunity:\n  :PROPERTIES:\n  :STAGE:    Lead\n  :REGION:   \n  :COUNTRIES: \n  :CONTACT:  \n  :VALUE:    \n  :CLOSE:    %^t\n  :SOURCE:   \n  :END:\n  %U\n\n*** TODO [next action]\n")
           ("C" "Contact" entry (file+headline "~/ORG/contacts.org" "Contacts")
-           "* %?\n  :PROPERTIES:\n  :EMAIL:    \n  :PHONE:    \n  :ORG:      \n  :ROLE:     \n  :REGION:   \n  :LAST_CONTACT: %U\n  :END:\n")))
+           "* %?\n  :PROPERTIES:\n  :EMAIL:    \n  :PHONE:    \n  :ORG:      \n  :ROLE:     \n  :REGION:   \n  :LAST_CONTACT: %U\n  :END:\n")
+          ("m" "Meeting Note" entry (file+headline "~/ORG/meetings.org" "Meetings")
+           "* %<%Y-%m-%d> %^{Meeting title}  :Meeting:\n  :PROPERTIES:\n  :ATTENDEES: %^\n  :PROJECT:   \n  :REGION:    \n  :COUNTRIES: \n  :END:\n  %T\n\n** Notes\n   %?\n\n** Action Items\n"
+           :empty-lines 1)))
 
   (setq org-refile-targets
         '(("~/ORG/gtd.org"            :maxlevel . 2)
@@ -238,7 +288,8 @@
           ("~/ORG/contacts.org"       :maxlevel . 2)
           ("~/ORG/reference.org"      :maxlevel . 2)
           ("~/ORG/someday.org"        :level    . 1)
-          ("~/ORG/tickler.org"        :maxlevel . 2)))
+          ("~/ORG/tickler.org"        :maxlevel . 2)
+          ("~/ORG/meetings.org"       :maxlevel . 3)))
   (setq org-refile-use-outline-path        'file
         org-outline-path-complete-in-steps nil
         org-refile-allow-creating-parent-nodes 'confirm)
@@ -251,6 +302,7 @@
                         (:newline)
                         ("PROJECT"      . ?P)
                         ("Opportunity"  . ?O)
+                        ("Meeting"      . ?M)
                         (:newline)
                         ("Global"       . ?G)
                         ("Africa"       . ?A)
@@ -370,6 +422,13 @@
           ("oT" "Follow-up Tasks" todo "TODO|NEXT|WAITING"
            ((org-agenda-files '("~/ORG/opportunities.org"))
             (org-agenda-overriding-header "Opportunity Follow-up Tasks")
+            (org-super-agenda-groups '((:auto-parent t)))))
+
+          ;; Meeting notes views
+          ("m" . "Meetings")
+          ("mt" "Unprocessed Meeting Actions" todo "TODO|NEXT|WAITING"
+           ((org-agenda-files '("~/ORG/meetings.org"))
+            (org-agenda-overriding-header "Meeting Action Items — refile to destination files")
             (org-super-agenda-groups '((:auto-parent t))))))))
 
 ;; Org heading hierarchy — scaled for visual depth
@@ -479,22 +538,25 @@
 (use-package dired-rainbow
   :after dired
   :config
-  (dired-rainbow-define-chmod directory      "#6cb2eb" "d.*")
-  (dired-rainbow-define       symlink        "#f6d860" "l.*")
-  (dired-rainbow-define       image          "#b5bd68" ("jpg" "jpeg" "png" "gif" "svg" "webp" "bmp" "tiff" "ico"))
-  (dired-rainbow-define       media          "#de935f" ("mp3" "mp4" "mkv" "avi" "mov" "flac" "ogg" "wav" "m4a"))
-  (dired-rainbow-define       document       "#cc99cc" ("pdf" "doc" "docx" "odt" "tex" "md" "rst" "org"))
-  (dired-rainbow-define       sourcefile     "#f6993f" ("py" "el" "js" "ts" "go" "rs" "c" "cpp" "h" "hpp" "sh" "bash" "zsh"))
-  (dired-rainbow-define       data           "#8abeb7" ("csv" "json" "yaml" "yml" "toml" "xml" "sql" "db"))
-  (dired-rainbow-define       archive        "#cc6666" ("zip" "tar" "gz" "bz2" "xz" "7z" "rar"))
-  (dired-rainbow-define-chmod executable-unix "#a3be8c" "-.*x.*"))
+  (dired-rainbow-define-chmod directory      "#1e66f5" "d.*")
+  (dired-rainbow-define       symlink        "#df8e1d" "l.*")
+  (dired-rainbow-define       image          "#ea76cb" ("jpg" "jpeg" "png" "gif" "svg" "webp" "bmp" "tiff" "ico"))
+  (dired-rainbow-define       media          "#fe640b" ("mp3" "mp4" "mkv" "avi" "mov" "flac" "ogg" "wav" "m4a"))
+  (dired-rainbow-define       document       "#8839ef" ("pdf" "doc" "docx" "odt" "tex" "md" "rst" "org"))
+  (dired-rainbow-define       sourcefile     "#40a02b" ("py" "el" "js" "ts" "go" "rs" "c" "cpp" "h" "hpp" "sh" "bash" "zsh"))
+  (dired-rainbow-define       data           "#179299" ("csv" "json" "yaml" "yml" "toml" "xml" "sql" "db"))
+  (dired-rainbow-define       archive        "#d20f39" ("zip" "tar" "gz" "bz2" "xz" "7z" "rar"))
+  (dired-rainbow-define-chmod executable-unix "#04a5e5" "-.*x.*"))
+
+;; === Icons ===
+(use-package nerd-icons)
 
 (use-package dirvish
-  :init (dirvish-override-dired-mode)
+  :init (dirvish-override-dired-mode 1)
   :custom
   (dirvish-mode-line-format '(:left (sort symlink) :right (omit yank index)))
-  (dirvish-attributes        '(vc-state subtree-state collapse git-msg file-time file-size))
-  (dirvish-side-attributes   '(vc-state collapse file-size))
+  (dirvish-attributes        '(nerd-icons vc-state subtree-state collapse git-msg file-time file-size))
+  (dirvish-side-attributes   '(nerd-icons vc-state collapse file-size))
   (dirvish-large-directory-threshold 20000)
   (dired-mouse-drag-files t)
   (mouse-drag-and-drop-region-cross-program t)
@@ -532,11 +594,6 @@
    ("M-b" . dirvish-history-go-backward)
    ("M-e" . dirvish-emerge-menu)))
 
-;; === Icons ===
-(use-package nerd-icons)
-
-(use-package nerd-icons-dired
-  :hook (dired-mode . nerd-icons-dired-mode))
 
 (use-package doom-modeline
   :hook (after-init . doom-modeline-mode)
