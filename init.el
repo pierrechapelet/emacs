@@ -175,19 +175,27 @@
                            "~/ORG/gtd.org"
                            "~/ORG/areas.org"
                            "~/ORG/tickler.org"
-                           "~/ORG/projects.org"))
+                           "~/ORG/projects.org"
+                           "~/ORG/opportunities.org"))
 
   (setq org-todo-keywords
         '((sequence "ACTIVE(a)" "HOLD(h@)" "|" "DONE(d!)" "CANCELLED(c@)")
-          (sequence "TODO(t)" "NEXT(n)" "WAITING(w@/!)" "|" "DONE(d!)" "CANCELLED(c@)")))
+          (sequence "TODO(t)" "NEXT(n)" "WAITING(w@/!)" "|" "DONE(d!)" "CANCELLED(c@)")
+          (sequence "LEAD(l)" "QUALIFIED(q)" "PROPOSAL(s)" "NEGOTIATION(n)" "|" "WON(w!)" "LOST(L@)")))
 
   (setq org-todo-keyword-faces
-        '(("TODO"      . (:foreground "orange"   :weight bold))
-          ("NEXT"      . (:foreground "cyan"     :weight bold))
-          ("WAITING"   . (:foreground "magenta"  :weight bold))
-          ("ACTIVE"    . (:foreground "#00ff5f"  :weight bold))
-          ("HOLD"      . (:foreground "yellow"   :weight bold))
-          ("CANCELLED" . (:foreground "gray"     :weight bold))))
+        '(("TODO"        . (:foreground "orange"   :weight bold))
+          ("NEXT"        . (:foreground "cyan"     :weight bold))
+          ("WAITING"     . (:foreground "magenta"  :weight bold))
+          ("ACTIVE"      . (:foreground "#00ff5f"  :weight bold))
+          ("HOLD"        . (:foreground "yellow"   :weight bold))
+          ("CANCELLED"   . (:foreground "gray"     :weight bold))
+          ("LEAD"        . (:foreground "#d4b483"  :weight bold))
+          ("QUALIFIED"   . (:foreground "#5fafff"  :weight bold))
+          ("PROPOSAL"    . (:foreground "#ff8c00"  :weight bold))
+          ("NEGOTIATION" . (:foreground "#df80ff"  :weight bold))
+          ("WON"         . (:foreground "#00d700"  :weight bold))
+          ("LOST"        . (:foreground "gray"     :weight bold))))
 
   (setq org-capture-templates
         '(("i" "Inbox" entry (file "~/ORG/inbox.org")
@@ -197,15 +205,21 @@
           ("p" "UNESCO Project" entry (file+headline "~/ORG/projects.org" "Projects")
            "* ACTIVE %?  :PROJECT:\n  :PROPERTIES:\n  :REGION:    \n  :COUNTRIES: \n  :TYPE:      Global/Regional/Country\n  :PARTNER:   \n  :END:\n  %U\n\n*** TODO [first next action]\n")
           ("n" "Reference Note" entry (file "~/ORG/reference.org")
-           "* %?\n  %U\n  %a")))
+           "* %?\n  %U\n  %a")
+          ("o" "Opportunity" entry (file+headline "~/ORG/opportunities.org" "Pipeline")
+           "* LEAD %?  :Opportunity:\n  :PROPERTIES:\n  :STAGE:    Lead\n  :REGION:   \n  :COUNTRIES: \n  :CONTACT:  \n  :VALUE:    \n  :CLOSE:    %^t\n  :SOURCE:   \n  :END:\n  %U\n\n*** TODO [next action]\n")
+          ("C" "Contact" entry (file+headline "~/ORG/contacts.org" "Contacts")
+           "* %?\n  :PROPERTIES:\n  :EMAIL:    \n  :PHONE:    \n  :ORG:      \n  :ROLE:     \n  :REGION:   \n  :LAST_CONTACT: %U\n  :END:\n")))
 
   (setq org-refile-targets
-        '(("~/ORG/gtd.org"       :maxlevel . 2)
-          ("~/ORG/projects.org"  :maxlevel . 3)
-          ("~/ORG/areas.org"     :maxlevel . 3)
-          ("~/ORG/reference.org" :maxlevel . 2)
-          ("~/ORG/someday.org"   :level    . 1)
-          ("~/ORG/tickler.org"   :maxlevel . 2)))
+        '(("~/ORG/gtd.org"            :maxlevel . 2)
+          ("~/ORG/projects.org"       :maxlevel . 3)
+          ("~/ORG/opportunities.org"  :maxlevel . 2)
+          ("~/ORG/areas.org"          :maxlevel . 3)
+          ("~/ORG/contacts.org"       :maxlevel . 2)
+          ("~/ORG/reference.org"      :maxlevel . 2)
+          ("~/ORG/someday.org"        :level    . 1)
+          ("~/ORG/tickler.org"        :maxlevel . 2)))
   (setq org-refile-use-outline-path        'file
         org-outline-path-complete-in-steps nil
         org-refile-allow-creating-parent-nodes 'confirm)
@@ -217,6 +231,7 @@
                         ("@office"      . ?o)
                         (:newline)
                         ("PROJECT"      . ?P)
+                        ("Opportunity"  . ?O)
                         (:newline)
                         ("Global"       . ?G)
                         ("Africa"       . ?A)
@@ -245,6 +260,7 @@
                     '(org-agenda-skip-entry-if 'scheduled 'deadline))
                    (org-super-agenda-groups
                     '((:name "UNESCO Projects" :file-path "projects\\.org")
+                      (:name "Opportunities"   :file-path "opportunities\\.org")
                       (:name "Areas"           :file-path "areas\\.org")
                       (:name "Personal"        :file-path "gtd\\.org")
                       (:discard (:anything t))))))
@@ -315,11 +331,34 @@
            ((org-agenda-files '("~/ORG/projects.org"))
             (org-agenda-overriding-header "UNESCO Tasks by Project")
             (org-super-agenda-groups
-             '((:auto-parent t))))))))
+             '((:auto-parent t)))))
+
+          ;; Opportunity pipeline views
+          ("o" . "Opportunities")
+          ("op" "Full Pipeline" todo "LEAD|QUALIFIED|PROPOSAL|NEGOTIATION"
+           ((org-agenda-files '("~/ORG/opportunities.org"))
+            (org-agenda-overriding-header "Opportunity Pipeline")
+            (org-super-agenda-groups
+             '((:name "Lead"        :todo "LEAD")
+               (:name "Qualified"   :todo "QUALIFIED")
+               (:name "Proposal"    :todo "PROPOSAL")
+               (:name "Negotiation" :todo "NEGOTIATION")
+               (:name "Other"       :anything t)))))
+          ("ow" "Won" todo "WON"
+           ((org-agenda-files '("~/ORG/opportunities.org"))
+            (org-agenda-overriding-header "Won Opportunities")))
+          ("oT" "Follow-up Tasks" todo "TODO|NEXT|WAITING"
+           ((org-agenda-files '("~/ORG/opportunities.org"))
+            (org-agenda-overriding-header "Opportunity Follow-up Tasks")
+            (org-super-agenda-groups '((:auto-parent t))))))))
 
 (use-package org-super-agenda
   :after org
   :config (org-super-agenda-mode))
+
+(use-package org-contacts
+  :after org
+  :custom (org-contacts-files '("~/ORG/contacts.org")))
 
 (use-package htmlize)
 
