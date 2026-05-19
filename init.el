@@ -173,6 +173,7 @@
   (setq org-directory "~/ORG/"
         org-agenda-files '("~/ORG/inbox.org"
                            "~/ORG/gtd.org"
+                           "~/ORG/areas.org"
                            "~/ORG/tickler.org"
                            "~/ORG/projects.org"))
 
@@ -194,13 +195,17 @@
           ("t" "Tickler" entry (file "~/ORG/tickler.org")
            "* TODO %?\nSCHEDULED: %^t\n")
           ("p" "UNESCO Project" entry (file+headline "~/ORG/projects.org" "Projects")
-           "* ACTIVE %?  :PROJECT:\n  :PROPERTIES:\n  :REGION:    \n  :COUNTRIES: \n  :TYPE:      Global/Regional/Country\n  :PARTNER:   \n  :END:\n  %U\n\n*** TODO [first next action]\n")))
+           "* ACTIVE %?  :PROJECT:\n  :PROPERTIES:\n  :REGION:    \n  :COUNTRIES: \n  :TYPE:      Global/Regional/Country\n  :PARTNER:   \n  :END:\n  %U\n\n*** TODO [first next action]\n")
+          ("n" "Reference Note" entry (file "~/ORG/reference.org")
+           "* %?\n  %U\n  %a")))
 
   (setq org-refile-targets
-        '(("~/ORG/gtd.org"      :maxlevel . 2)
-          ("~/ORG/projects.org" :maxlevel . 3)
-          ("~/ORG/someday.org"  :level    . 1)
-          ("~/ORG/tickler.org"  :maxlevel . 2)))
+        '(("~/ORG/gtd.org"       :maxlevel . 2)
+          ("~/ORG/projects.org"  :maxlevel . 3)
+          ("~/ORG/areas.org"     :maxlevel . 3)
+          ("~/ORG/reference.org" :maxlevel . 2)
+          ("~/ORG/someday.org"   :level    . 1)
+          ("~/ORG/tickler.org"   :maxlevel . 2)))
   (setq org-refile-use-outline-path        'file
         org-outline-path-complete-in-steps nil
         org-refile-allow-creating-parent-nodes 'confirm)
@@ -224,8 +229,10 @@
   (setq org-stuck-projects
         '("+PROJECT/-DONE-CANCELLED" ("NEXT") nil ""))
 
-  (setq org-archive-location "~/ORG/archive.org::* From %s")
-  (setq org-log-done              'time
+  (setq org-archive-location     "~/ORG/archive.org::* From %s"
+        org-deadline-warning-days 21
+        org-agenda-window-setup  'current-window
+        org-log-done              'time
         org-log-into-drawer       t
         org-use-fast-todo-selection t)
 
@@ -235,7 +242,12 @@
             (todo "NEXT"
                   ((org-agenda-overriding-header "Next Actions")
                    (org-agenda-skip-function
-                    '(org-agenda-skip-entry-if 'scheduled 'deadline))))
+                    '(org-agenda-skip-entry-if 'scheduled 'deadline))
+                   (org-super-agenda-groups
+                    '((:name "UNESCO Projects" :file-path "projects\\.org")
+                      (:name "Areas"           :file-path "areas\\.org")
+                      (:name "Personal"        :file-path "gtd\\.org")
+                      (:discard (:anything t))))))
             (todo "WAITING"
                   ((org-agenda-overriding-header "Waiting For")))
             (stuck ""
@@ -253,17 +265,40 @@
 
           ("r" "Weekly Review"
            ((agenda "" ((org-agenda-span 7)))
+            (todo "HOLD"
+                  ((org-agenda-overriding-header "On Hold — reassess or reactivate")))
+            (agenda "" ((org-agenda-span 14)
+                        (org-agenda-entry-types '(:deadline))
+                        (org-agenda-overriding-header "Deadlines — next 14 days")))
             (stuck "")
             (todo "WAITING" ((org-agenda-overriding-header "Waiting For")))
             (todo "TODO"
                   ((org-agenda-overriding-header "Inbox to process")
                    (org-agenda-files '("~/ORG/inbox.org"))))))
 
+          ("d" "Upcoming Deadlines"
+           agenda ""
+           ((org-agenda-span 30)
+            (org-agenda-entry-types '(:deadline))
+            (org-agenda-overriding-header "Deadlines — next 30 days")))
+
+          ("H" "On Hold"
+           todo "HOLD"
+           ((org-agenda-overriding-header "Projects on Hold — reassess or reactivate")))
+
           ;; UNESCO project views (all scoped to projects.org)
           ("u" . "UNESCO Projects")
           ("us" "All Active Projects" todo "ACTIVE"
            ((org-agenda-files '("~/ORG/projects.org"))
-            (org-agenda-overriding-header "All Active UNESCO Projects")))
+            (org-agenda-overriding-header "UNESCO Projects by Region")
+            (org-super-agenda-groups
+             '((:name "Global"        :tag "Global")
+               (:name "Africa"        :tag "Africa")
+               (:name "Arab States"   :tag "ArabStates")
+               (:name "Asia-Pacific"  :tag "AsiaPacific")
+               (:name "Europe"        :tag "Europe")
+               (:name "Latin America" :tag "LatinAmerica")
+               (:name "Other"         :anything t)))))
           ("ug" "Global" tags "+Global+PROJECT"
            ((org-agenda-files '("~/ORG/projects.org"))))
           ("ua" "Africa" tags "+Africa+PROJECT"
@@ -278,7 +313,13 @@
            ((org-agenda-files '("~/ORG/projects.org"))))
           ("uT" "All UNESCO Tasks" todo "TODO|NEXT|WAITING"
            ((org-agenda-files '("~/ORG/projects.org"))
-            (org-agenda-overriding-header "All UNESCO Tasks"))))))
+            (org-agenda-overriding-header "UNESCO Tasks by Project")
+            (org-super-agenda-groups
+             '((:auto-parent t))))))))
+
+(use-package org-super-agenda
+  :after org
+  :config (org-super-agenda-mode))
 
 (use-package htmlize)
 
