@@ -171,16 +171,23 @@
                                 (R      . t)
                                 (sql    . t)))
 
-(defun my/consult-org-heading-all ()
-  (interactive)
-  (consult-org-heading nil '(agenda all)))
-
 ;; === GTD / Org ===
+(defun my/consult-org-all-headings ()
+  "Fuzzy search headings across all GTD/UNESCO org files (agenda + reference/someday/contacts)."
+  (interactive)
+  (let ((org-agenda-files
+         (append (org-agenda-files)
+                 (mapcar #'expand-file-name
+                         '("~/ORG/reference.org"
+                           "~/ORG/someday.org"
+                           "~/ORG/contacts.org")))))
+    (consult-org-heading nil 'agenda)))
+
 (use-package org
   :ensure nil
   :bind (("C-c c"   . org-capture)
          ("C-c a"   . org-agenda)
-         ("C-c o h" . my/consult-org-heading-all))
+         ("C-c o h" . my/consult-org-all-headings))
   :config
   (setq org-directory "~/ORG/"
         org-agenda-files '("~/ORG/inbox.org"
