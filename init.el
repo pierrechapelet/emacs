@@ -69,7 +69,8 @@
       mac-right-option-modifier 'meta)
 
 (when (eq system-type 'darwin)
-  (setq dired-use-ls-dired nil))
+  (setq dired-use-ls-dired nil)
+  (setq tooltip-use-echo-area t))
 
 (windmove-default-keybindings 'meta)
 
@@ -175,7 +176,7 @@
   :ensure nil
   :bind (("C-c c"   . org-capture)
          ("C-c a"   . org-agenda)
-         ("C-c o h" . consult-org-heading))
+         ("C-c o h" . (lambda () (interactive) (consult-org-heading nil '(agenda all)))))
   :config
   (setq org-directory "~/ORG/"
         org-agenda-files '("~/ORG/inbox.org"
