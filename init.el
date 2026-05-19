@@ -29,6 +29,8 @@
 (use-package atom-one-dark-theme
   :config (load-theme 'atom-one-dark t))
 
+(set-face-attribute 'default nil :height 130)
+
 (setq inhibit-startup-message t
       column-number-mode t
       split-height-threshold nil
