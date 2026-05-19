@@ -1,7 +1,7 @@
 ;;; init.el --- Emacs configuration -*- lexical-binding: t -*-
 
 ;;; Commentary:
-;; Personal config: atom-one-dark theme, completion stack (vertico/corfu/embark),
+;; Personal config: doom-one-light theme, completion stack (vertico/corfu/embark),
 ;; Python/C++/LaTeX/Org support, Dirvish file manager, Claude Code integration.
 
 ;;; Code:
@@ -26,8 +26,15 @@
 (load custom-file t)
 
 ;; === Appearance & global settings ===
-(use-package atom-one-dark-theme
-  :config (load-theme 'atom-one-dark t))
+;; (use-package atom-one-dark-theme
+;;   :config (load-theme 'atom-one-dark t))
+;; (load-theme 'modus-operandi-tinted t)
+(use-package doom-themes
+  :config
+  (setq doom-themes-enable-bold t
+        doom-themes-enable-italic t)
+  (load-theme 'doom-one-light t)
+  (doom-themes-org-config))
 
 (set-face-attribute 'default nil :height 130)
 
@@ -359,6 +366,11 @@
 (use-package org-contacts
   :after org
   :custom (org-contacts-files '("~/ORG/contacts.org")))
+
+(use-package org-modern
+  :after org
+  :hook ((org-mode . org-modern-mode)
+         (org-agenda-finalize . org-modern-agenda)))
 
 (use-package htmlize)
 
