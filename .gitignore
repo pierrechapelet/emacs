@@ -18,6 +18,7 @@ places
 
 # Personal identifiers — keep off git
 personal.el
+CLAUDE.md
 
 # Lock and temp files
 \#*\#
