@@ -370,7 +370,9 @@
 (use-package org-modern
   :after org
   :hook ((org-mode . org-modern-mode)
-         (org-agenda-finalize . org-modern-agenda)))
+         (org-agenda-finalize . org-modern-agenda))
+  :custom
+  (org-modern-star '("◉" "○" "◆" "◇" "▷")))
 
 (use-package htmlize)
 
