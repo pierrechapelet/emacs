@@ -263,12 +263,13 @@
   (setq org-stuck-projects
         '("+PROJECT/-DONE-CANCELLED" ("NEXT") nil ""))
 
-  (setq org-archive-location     "~/ORG/archive.org::* From %s"
+  (setq org-archive-location      "~/ORG/archive.org::* From %s"
         org-deadline-warning-days 21
-        org-agenda-window-setup  'current-window
+        org-agenda-window-setup   'current-window
         org-log-done              'time
         org-log-into-drawer       t
-        org-use-fast-todo-selection t)
+        org-use-fast-todo-selection t
+        org-startup-indented      t)
 
   (setq org-agenda-custom-commands
         '(("g" "GTD Dashboard"
@@ -370,6 +371,12 @@
            ((org-agenda-files '("~/ORG/opportunities.org"))
             (org-agenda-overriding-header "Opportunity Follow-up Tasks")
             (org-super-agenda-groups '((:auto-parent t))))))))
+
+;; Org heading hierarchy — scaled for visual depth
+(set-face-attribute 'org-level-1 nil :height 1.4  :weight 'bold)
+(set-face-attribute 'org-level-2 nil :height 1.25 :weight 'bold)
+(set-face-attribute 'org-level-3 nil :height 1.1  :weight 'semi-bold)
+(set-face-attribute 'org-level-4 nil :height 1.0  :weight 'normal)
 
 (use-package org-super-agenda
   :after org
