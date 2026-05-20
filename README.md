@@ -32,11 +32,13 @@ Key bindings: `C-c f` (full Dirvish), `C-c s` (sidebar), `C-c F` (fd search).
 Org is configured for a full GTD workflow. Highlights:
 
 - Three TODO keyword sequences: project states (`ACTIVE`/`HOLD`), task states (`TODO`/`NEXT`/`WAITING`), and an opportunity pipeline (`LEAD` → `WON`/`LOST`)
-- Six capture templates (`C-c c`) landing in dedicated files (inbox, projects, tickler, reference, opportunities, contacts)
-- Custom agenda views via `org-super-agenda`: GTD dashboard, by-context, weekly review, and pipeline views
+- Seven capture templates (`C-c c`): inbox, UNESCO project, tickler, reference note, opportunity, contact, meeting note
+- Custom agenda views via `org-super-agenda`: GTD dashboard, by-context, weekly review, UNESCO project/task views, regional filters, opportunity pipeline, and meeting action views
+- Custom `C-c o` keybindings: `h` (fuzzy heading search across all org files), `c`/`r` (interactive country/region pickers backed by UN ISO list), `l` (insert org link to any heading via refile UI)
+- `org-return-follows-link t` — RET on a link opens it
 - `org-contacts` integrates with mu4e compose for contact auto-completion
 - Babel enabled for Python, Shell, R, and SQL
-- `org-modern` for visual polish
+- `org-modern` for visual polish; `org-appear` to auto-reveal markup (links, entities, sub/superscripts) under the cursor
 
 ## Programming
 
