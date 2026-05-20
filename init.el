@@ -81,7 +81,7 @@
 ;; === macOS keys ===
 (setq mac-option-modifier       'meta
       mac-command-modifier      'super
-      mac-right-option-modifier 'meta)
+      mac-right-option-modifier nil)
 
 (when (eq system-type 'darwin)
   (setq dired-use-ls-dired nil)
@@ -620,8 +620,10 @@
   :init (dirvish-override-dired-mode 1)
   :custom
   (dirvish-mode-line-format '(:left (sort symlink) :right (omit yank index)))
-  (dirvish-attributes        '(nerd-icons vc-state subtree-state collapse git-msg file-time file-size))
+  (dirvish-attributes        '(nerd-icons vc-state subtree-state collapse git-msg file-modes file-time file-size))
   (dirvish-side-attributes   '(nerd-icons vc-state collapse file-size))
+  (dirvish-default-layout    '(1 0.11 0.55))
+  (dirvish-layout-recipes    '((0 0 0.4) (1 0.11 0.55)))
   (dirvish-large-directory-threshold 20000)
   (dired-mouse-drag-files t)
   (mouse-drag-and-drop-region-cross-program t)
