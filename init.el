@@ -213,8 +213,8 @@
 
 (defun my/org-property-picker-advice (orig property &optional value)
   (cond
-   ((and (string= property "COUNTRIES") (null value)) (my/org-set-countries))
-   ((and (string= property "REGION")    (null value)) (my/org-set-region))
+   ((and (equal property "COUNTRIES") (null value)) (my/org-set-countries))
+   ((and (equal property "REGION")    (null value)) (my/org-set-region))
    (t (funcall orig property value))))
 
 (advice-add 'org-set-property :around #'my/org-property-picker-advice)
