@@ -659,7 +659,8 @@
    ("TAB" . dirvish-subtree-toggle)
    ("M-f" . dirvish-history-go-forward)
    ("M-b" . dirvish-history-go-backward)
-   ("M-e" . dirvish-emerge-menu)))
+   ("M-e" . dirvish-emerge-menu)
+   ("\\"  . dirvish-layout-switch)))
 
 
 ;; doom-modeline: shows git branch, LSP status, time, and battery in a compact bar.
