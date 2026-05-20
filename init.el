@@ -220,14 +220,15 @@
 (advice-add 'org-set-property :around #'my/org-property-picker-advice)
 
 (defun my/consult-org-all-headings ()
-  "Fuzzy search headings across all GTD/UNESCO org files (agenda + reference/someday/contacts)."
+  "Fuzzy search headings across all GTD/UNESCO org files (agenda + reference/someday/contacts/meetings)."
   (interactive)
   (let ((org-agenda-files
          (append (org-agenda-files)
                  (mapcar #'expand-file-name
                          '("~/ORG/reference.org"
                            "~/ORG/someday.org"
-                           "~/ORG/contacts.org")))))
+                           "~/ORG/contacts.org"
+                           "~/ORG/meetings.org")))))
     (minibuffer-with-setup-hook
         (lambda ()
           ;; Neutralise org heading height scaling so candidates render at
@@ -302,27 +303,33 @@
   (setq org-capture-templates
         '(;; --- GTD ---
           ("i" "Inbox" entry (file "~/ORG/inbox.org")
-           "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n")
+           "* TODO %?\n  :PROPERTIES:\n  :CREATED: %U\n  :END:\n"
+           :empty-lines 1)
           ("t" "Tickler" entry (file "~/ORG/tickler.org")
-           "* TODO %?\nSCHEDULED: %^t\n")
+           "* TODO %?\nSCHEDULED: %^t\n"
+           :empty-lines 1)
           ;; --- UNESCO project management ---
           ("p" "UNESCO Project" entry (file+headline "~/ORG/projects.org" "Projects")
-           "* ACTIVE %^{Project title}  :PROJECT:\n  :PROPERTIES:\n  :REGION:    \n  :COUNTRIES: \n  :TYPE:      Global/Regional/Country\n  :PARTNER:   \n  :END:\n  %U\n\n*** TODO [first next action]\n")
+           "* ACTIVE %^{Project title}  :PROJECT:\n  :PROPERTIES:\n  :REGION:    \n  :COUNTRIES: \n  :TYPE:      Global/Regional/Country\n  :PARTNER:   \n  :END:\n  %U\n\n** Background\n   %?\n\n** Scope of Work\n\n** Key Stakeholders\n\n** Notes\n\n** Tasks\n*** TODO [first next action]\n"
+           :empty-lines 1)
           ("n" "Reference Note" entry (file "~/ORG/reference.org")
-           "* %?\n  %U\n  %a")
+           "* %?\n  %U\n  %a"
+           :empty-lines 1)
           ("o" "Opportunity" entry (file+headline "~/ORG/opportunities.org" "Pipeline")
-           "* LEAD %^{Opportunity title}  :Opportunity:\n  :PROPERTIES:\n  :STAGE:    Lead\n  :REGION:   \n  :COUNTRIES: \n  :CONTACT:  \n  :VALUE:    \n  :CLOSE:    %^t\n  :SOURCE:   \n  :END:\n  %U\n\n*** TODO [next action]\n")
+           "* LEAD %^{Opportunity title}  :Opportunity:\n  :PROPERTIES:\n  :STAGE:    Lead\n  :REGION:   \n  :COUNTRIES: \n  :CONTACT:  \n  :VALUE:    \n  :CLOSE:    %^t\n  :SOURCE:   \n  :END:\n  %U\n\n** Context\n   %?\n\n** Requirements\n\n** Proposal Notes\n\n** Tasks\n*** TODO [next action]\n"
+           :empty-lines 1)
           ("m" "Meeting Note" entry (file+headline "~/ORG/meetings.org" "Meetings")
-           "* %<%Y-%m-%d> %^{Meeting title}  :Meeting:\n  :PROPERTIES:\n  :ATTENDEES: %^{Attendees — names, comma-separated (e.g. Alice, Bob)}\n  :PROJECT:   \n  :REGION:    \n  :COUNTRIES: \n  :END:\n  %T\n\n** Notes\n   %?\n\n** Action Items\n"
+           "* %<%Y-%m-%d> %^{Meeting title}  :Meeting:\n  :PROPERTIES:\n  :ATTENDEES: %^{Attendees — names, comma-separated (e.g. Alice, Bob)}\n  :PROJECT:   \n  :REGION:    \n  :COUNTRIES: \n  :END:\n  %T\n\n** Agenda\n\n** Notes\n   %?\n\n** Action Items\n"
            :empty-lines 1)
           ;; --- CRM ---
           ("C" "Contact" entry (file+headline "~/ORG/contacts.org" "Contacts")
-           "* %^{Name — full name}\n  :PROPERTIES:\n  :EMAIL:    \n  :PHONE:    \n  :ORG:      \n  :ROLE:     \n  :REGION:   \n  :LAST_CONTACT: %U\n  :END:\n")))
+           "* %^{Name — full name}\n  :PROPERTIES:\n  :EMAIL:    \n  :PHONE:    \n  :ORG:      \n  :ROLE:     \n  :REGION:   \n  :LAST_CONTACT: %U\n  :END:\n\n** Notes\n   %?\n\n** Interactions\n"
+           :empty-lines 1)))
 
   (setq org-refile-targets
         '(("~/ORG/gtd.org"            :maxlevel . 2)
           ("~/ORG/projects.org"       :maxlevel . 3)
-          ("~/ORG/opportunities.org"  :maxlevel . 2)
+          ("~/ORG/opportunities.org"  :maxlevel . 3)
           ("~/ORG/areas.org"          :maxlevel . 3)
           ("~/ORG/contacts.org"       :maxlevel . 2)
           ("~/ORG/reference.org"      :maxlevel . 2)
