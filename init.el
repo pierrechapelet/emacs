@@ -38,6 +38,8 @@
 
 (set-face-attribute 'default nil :height 130)
 
+;; Automatically switch between windowed (130) and fullscreen (160) font height.
+;; Hooked on window-size-change-functions so it reacts to C-s-f (toggle-frame-fullscreen).
 (defvar my/windowed-font-height 130)
 (defvar my/fullscreen-font-height 160)
 
@@ -53,11 +55,11 @@
 
 (setq inhibit-startup-message t
       column-number-mode t
-      split-height-threshold nil
-      split-width-threshold 0
+      split-height-threshold nil       ; always split side-by-side
+      split-width-threshold 0          ; always split side-by-side
       use-short-answers t
-      make-backup-files nil
-      history-length 50
+      make-backup-files nil            ; rely on git instead
+      history-length 50                ; minibuffer / savehist depth
       global-auto-revert-non-file-buffers t
       completion-cycle-threshold 3)
 
@@ -103,6 +105,8 @@
 (global-set-key (kbd "M-s-<down>")   #'enlarge-window)
 
 ;; === Completion ===
+;; vertico: minibuffer UI  |  corfu: inline popup  |  orderless: fuzzy matching
+;; marginalia: annotations  |  embark: context actions  |  consult: enhanced commands
 (use-package vertico
   :demand t
   :bind (:map minibuffer-local-map
@@ -185,6 +189,7 @@
                                 (sql    . t)))
 
 ;; === GTD / Org ===
+;; C-c o h: fuzzy heading search  |  C-c o c/r: country/region pickers  |  C-c o l: insert heading link
 (require 'org-geo-data (expand-file-name "org-geo-data.el" user-emacs-directory))
 
 (defun my/org-set-countries ()
@@ -235,13 +240,33 @@
                       nil t)))
       (consult-org-heading nil 'agenda))))
 
+(defun my/org-insert-heading-link ()
+  "Pick any org heading via the refile UI and insert an org link at point."
+  (interactive)
+  (let* ((orig-buf   (current-buffer))
+         (orig-point (point))
+         (loc        (org-refile-get-location "Insert link to"))
+         (file       (nth 1 loc))
+         (pos        (nth 3 loc))
+         link desc)
+    (with-current-buffer (find-file-noselect file 'nowarn)
+      (org-with-wide-buffer
+       (goto-char pos)
+       (org-back-to-heading t)
+       (setq link (org-store-link nil nil))
+       (setq desc (plist-get org-store-link-plist :description))))
+    (with-current-buffer orig-buf
+      (goto-char orig-point)
+      (org-insert-link nil link desc))))
+
 (use-package org
   :ensure nil
   :bind (("C-c c"   . org-capture)
          ("C-c a"   . org-agenda)
          ("C-c o h" . my/consult-org-all-headings)
          ("C-c o c" . my/org-set-countries)
-         ("C-c o r" . my/org-set-region))
+         ("C-c o r" . my/org-set-region)
+         ("C-c o l" . my/org-insert-heading-link))
   :config
   (setq org-directory "~/ORG/"
         org-agenda-files '("~/ORG/inbox.org"
@@ -328,7 +353,8 @@
         org-log-done              'time
         org-log-into-drawer       t
         org-use-fast-todo-selection t
-        org-startup-indented      t)
+        org-startup-indented      t
+        org-return-follows-link   t)
 
   (setq org-agenda-custom-commands
         '(("g" "GTD Dashboard"
@@ -459,6 +485,13 @@
   :custom
   (org-modern-star '("◉" "○" "◆" "◇" "▷")))
 
+(use-package org-appear
+  :hook (org-mode . org-appear-mode)
+  :custom
+  (org-appear-autolinks t)
+  (org-appear-autoentities t)
+  (org-appear-autosubmarkers t))
+
 (use-package htmlize)
 
 (use-package markdown-mode
@@ -499,6 +532,7 @@
 (add-hook 'prog-mode-hook       #'display-line-numbers-mode)
 (add-hook 'emacs-lisp-mode-hook #'flymake-mode)
 
+;; pylsp-ruff: fast formatter/linter  |  pylsp-mypy: type-checker  |  clangd for C++
 (setq-default eglot-workspace-configuration
               '(:pylsp (:skip_token_initialization t
                         :plugins (:ruff       (:enabled t :formatEnabled t)
@@ -542,6 +576,8 @@
   (setq dired-listing-switches "-l --almost-all --human-readable --group-directories-first --no-group")
   (put 'dired-find-alternate-file 'disabled nil))
 
+;; Color-code files by type: directories → blue, symlinks → yellow, images → pink,
+;; media → orange, documents → purple, source → green, data → teal, archives → red.
 (use-package dired-rainbow
   :after dired
   :config
@@ -602,6 +638,7 @@
    ("M-e" . dirvish-emerge-menu)))
 
 
+;; doom-modeline: shows git branch, LSP status, time, and battery in a compact bar.
 (use-package doom-modeline
   :hook (after-init . doom-modeline-mode)
   :custom
