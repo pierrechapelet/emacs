@@ -63,10 +63,10 @@
       global-auto-revert-non-file-buffers t
       completion-cycle-threshold 3)
 
-(global-superword-mode t)
+(global-superword-mode t)       ; treat CamelCase/snake_case as single words
 (delete-selection-mode t)
-(electric-pair-mode t)
-(tab-bar-mode 1)
+(electric-pair-mode t)          ; auto-close brackets and quotes
+(tab-bar-mode 1)                ; named workspaces per project/context
 (display-time-mode 1)
 (display-battery-mode 1)
 (recentf-mode 1)
@@ -276,6 +276,10 @@
                            "~/ORG/projects.org"
                            "~/ORG/opportunities.org"))
 
+  ;; Three sequences cover the full GTD+CRM workflow:
+  ;;   1. ACTIVE/HOLD  — projects (long-running, pause-able)
+  ;;   2. TODO/NEXT/WAITING — standard task pipeline
+  ;;   3. LEAD→NEGOTIATION — opportunity pipeline (mirrors a sales funnel)
   (setq org-todo-keywords
         '((sequence "ACTIVE(a)" "HOLD(h@)" "|" "DONE(d!)" "CANCELLED(c@)")
           (sequence "TODO(t)" "NEXT(n)" "WAITING(w@/!)" "|" "DONE(d!)" "CANCELLED(c@)")
@@ -296,21 +300,24 @@
           ("LOST"        . (:foreground "gray"     :weight bold))))
 
   (setq org-capture-templates
-        '(("i" "Inbox" entry (file "~/ORG/inbox.org")
+        '(;; --- GTD ---
+          ("i" "Inbox" entry (file "~/ORG/inbox.org")
            "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n")
           ("t" "Tickler" entry (file "~/ORG/tickler.org")
            "* TODO %?\nSCHEDULED: %^t\n")
+          ;; --- UNESCO project management ---
           ("p" "UNESCO Project" entry (file+headline "~/ORG/projects.org" "Projects")
            "* ACTIVE %^{Project title}  :PROJECT:\n  :PROPERTIES:\n  :REGION:    \n  :COUNTRIES: \n  :TYPE:      Global/Regional/Country\n  :PARTNER:   \n  :END:\n  %U\n\n*** TODO [first next action]\n")
           ("n" "Reference Note" entry (file "~/ORG/reference.org")
            "* %?\n  %U\n  %a")
           ("o" "Opportunity" entry (file+headline "~/ORG/opportunities.org" "Pipeline")
            "* LEAD %^{Opportunity title}  :Opportunity:\n  :PROPERTIES:\n  :STAGE:    Lead\n  :REGION:   \n  :COUNTRIES: \n  :CONTACT:  \n  :VALUE:    \n  :CLOSE:    %^t\n  :SOURCE:   \n  :END:\n  %U\n\n*** TODO [next action]\n")
-          ("C" "Contact" entry (file+headline "~/ORG/contacts.org" "Contacts")
-           "* %^{Name — full name}\n  :PROPERTIES:\n  :EMAIL:    \n  :PHONE:    \n  :ORG:      \n  :ROLE:     \n  :REGION:   \n  :LAST_CONTACT: %U\n  :END:\n")
           ("m" "Meeting Note" entry (file+headline "~/ORG/meetings.org" "Meetings")
            "* %<%Y-%m-%d> %^{Meeting title}  :Meeting:\n  :PROPERTIES:\n  :ATTENDEES: %^{Attendees — names, comma-separated (e.g. Alice, Bob)}\n  :PROJECT:   \n  :REGION:    \n  :COUNTRIES: \n  :END:\n  %T\n\n** Notes\n   %?\n\n** Action Items\n"
-           :empty-lines 1)))
+           :empty-lines 1)
+          ;; --- CRM ---
+          ("C" "Contact" entry (file+headline "~/ORG/contacts.org" "Contacts")
+           "* %^{Name — full name}\n  :PROPERTIES:\n  :EMAIL:    \n  :PHONE:    \n  :ORG:      \n  :ROLE:     \n  :REGION:   \n  :LAST_CONTACT: %U\n  :END:\n")))
 
   (setq org-refile-targets
         '(("~/ORG/gtd.org"            :maxlevel . 2)
@@ -357,7 +364,8 @@
         org-return-follows-link   t)
 
   (setq org-agenda-custom-commands
-        '(("g" "GTD Dashboard"
+        '(;; Daily driver: today's agenda + NEXT actions + WAITING + stuck + inbox
+          ("g" "GTD Dashboard"
            ((agenda "" ((org-agenda-span 'day)))
             (todo "NEXT"
                   ((org-agenda-overriding-header "Next Actions")
@@ -377,6 +385,7 @@
                   ((org-agenda-overriding-header "Inbox (unprocessed)")
                    (org-agenda-files '("~/ORG/inbox.org"))))))
 
+          ;; Context dispatch: pick tasks by physical location tag
           ("c" "By Context"
            ((tags-todo "@computer" ((org-agenda-overriding-header "@computer")))
             (tags-todo "@phone"    ((org-agenda-overriding-header "@phone")))
@@ -384,6 +393,7 @@
             (tags-todo "@errands"  ((org-agenda-overriding-header "@errands")))
             (tags-todo "@office"   ((org-agenda-overriding-header "@office")))))
 
+          ;; Weekly review checklist: 7-day agenda, HOLD items, deadlines, stuck, inbox
           ("r" "Weekly Review"
            ((agenda "" ((org-agenda-span 7)))
             (todo "HOLD"
@@ -397,17 +407,19 @@
                   ((org-agenda-overriding-header "Inbox to process")
                    (org-agenda-files '("~/ORG/inbox.org"))))))
 
+          ;; 30-day deadline horizon
           ("d" "Upcoming Deadlines"
            agenda ""
            ((org-agenda-span 30)
             (org-agenda-entry-types '(:deadline))
             (org-agenda-overriding-header "Deadlines — next 30 days")))
 
+          ;; All HOLD items — reassess or reactivate during weekly review
           ("H" "On Hold"
            todo "HOLD"
            ((org-agenda-overriding-header "Projects on Hold — reassess or reactivate")))
 
-          ;; UNESCO project views (all scoped to projects.org)
+          ;; UNESCO project views: "us" all active, "u<region>" filtered by region, "uT" all tasks
           ("u" . "UNESCO Projects")
           ("us" "All Active Projects" todo "ACTIVE"
            ((org-agenda-files '("~/ORG/projects.org"))
@@ -438,7 +450,7 @@
             (org-super-agenda-groups
              '((:auto-parent t)))))
 
-          ;; Opportunity pipeline views
+          ;; Opportunity pipeline views: "op" full pipeline by stage, "ow" won, "oT" follow-up tasks
           ("o" . "Opportunities")
           ("op" "Full Pipeline" todo "LEAD|QUALIFIED|PROPOSAL|NEGOTIATION"
            ((org-agenda-files '("~/ORG/opportunities.org"))
@@ -457,7 +469,7 @@
             (org-agenda-overriding-header "Opportunity Follow-up Tasks")
             (org-super-agenda-groups '((:auto-parent t)))))
 
-          ;; Meeting notes views
+          ;; Meeting action items — refile TODO/NEXT to destination files after each meeting
           ("m" . "Meetings")
           ("mt" "Unprocessed Meeting Actions" todo "TODO|NEXT|WAITING"
            ((org-agenda-files '("~/ORG/meetings.org"))
@@ -470,14 +482,17 @@
 (set-face-attribute 'org-level-3 nil :height 1.1  :weight 'semi-bold)
 (set-face-attribute 'org-level-4 nil :height 1.0  :weight 'normal)
 
+;; Groups agenda blocks by custom rules (used in GTD/UNESCO/pipeline views above)
 (use-package org-super-agenda
   :after org
   :config (org-super-agenda-mode))
 
+;; Links contacts.org to mu4e compose auto-complete
 (use-package org-contacts
   :after org
   :custom (org-contacts-files '("~/ORG/contacts.org")))
 
+;; Replaces asterisks/checkboxes/tags with styled Unicode glyphs
 (use-package org-modern
   :after org
   :hook ((org-mode . org-modern-mode)
@@ -485,6 +500,7 @@
   :custom
   (org-modern-star '("◉" "○" "◆" "◇" "▷")))
 
+;; Reveals hidden markup (links, emphasis markers) only when cursor is inside
 (use-package org-appear
   :hook (org-mode . org-appear-mode)
   :custom
@@ -492,6 +508,7 @@
   (org-appear-autoentities t)
   (org-appear-autosubmarkers t))
 
+;; Required for syntax-highlighted HTML export from org-mode src blocks
 (use-package htmlize)
 
 (use-package markdown-mode
@@ -538,9 +555,12 @@
                         :plugins (:ruff       (:enabled t :formatEnabled t)
                                   :pylsp_mypy (:enabled t)))))
 
-(add-to-list 'auto-mode-alist '("\\.cu\\'" . c++-mode))
+(add-to-list 'auto-mode-alist '("\\.cu\\'" . c++-mode))  ; CUDA files → clangd via c++-mode
 (add-hook 'c++-mode-hook #'eglot-ensure)
 
+;; pyvenv reads WORKON_HOME to discover virtualenvs.  On remote buffers via
+;; TRAMP the var is unset, so pyvenv would fall back to the local home path.
+;; This advice injects the correct remote prefix before every workon call.
 (use-package pyvenv
   :config
   (pyvenv-mode 1)
@@ -562,6 +582,8 @@
   (processing-sketchbook-dir "~/Documents/Processing"))
 
 ;; === TRAMP ===
+;; ssh-controlmaster conflicts with TRAMP's own multiplexing; disabling it
+;; prevents hangs on slow or multi-hop SSH connections.
 (setq tramp-use-ssh-controlmaster-options nil
       tramp-verbose 6)
 ;; Adjust or remove this path if not using Stanford AFS
