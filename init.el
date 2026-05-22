@@ -321,6 +321,11 @@
           ("m" "Meeting Note" entry (file+headline "~/ORG/meetings.org" "Meetings")
            "* %<%Y-%m-%d> %^{Meeting title}  :Meeting:\n  :PROPERTIES:\n  :ATTENDEES: %^{Attendees — names, comma-separated (e.g. Alice, Bob)}\n  :PROJECT:   \n  :REGION:    \n  :COUNTRIES: \n  :END:\n  %T\n\n** Agenda\n\n** Notes\n   %?\n\n** Action Items\n"
            :empty-lines 1)
+          ;; --- Email → GTD (mu4e) ---
+          ("E" "Email → GTD" entry (file "~/ORG/inbox.org")
+           "* TODO %:subject\n  :PROPERTIES:\n  :CREATED: %U\n  :FROM: %:from\n  :END:\n\n  %a\n\n  %?"
+           :immediate-finish nil
+           :empty-lines 1)
           ;; --- CRM ---
           ("C" "Contact" entry (file+headline "~/ORG/contacts.org" "Contacts")
            "* %^{Name — full name}\n  :PROPERTIES:\n  :EMAIL:    \n  :PHONE:    \n  :ORG:      \n  :ROLE:     \n  :REGION:   \n  :LAST_CONTACT: %U\n  :END:\n\n** Notes\n   %?\n\n** Interactions\n"
@@ -357,11 +362,12 @@
                         ("LatinAmerica" . ?L)
                         ("ArabStates"   . ?B)))
 
-  ;; Stuck = PROJECT-tagged heading with no NEXT child
+  ;; Stuck = PROJECT-tagged heading with active state and no NEXT child
+  ;; Requiring ACTIVE|HOLD excludes structural sub-headings that inherit :PROJECT: via tag inheritance
   (setq org-stuck-projects
-        '("+PROJECT/-DONE-CANCELLED" ("NEXT") nil ""))
+        '("+PROJECT/ACTIVE|HOLD" ("NEXT") nil ""))
 
-  (setq org-archive-location      "~/ORG/archive.org::* From %s"
+  (setq org-archive-location      "~/ORG/archive.org::* Archive"
         org-deadline-warning-days 21
         org-agenda-window-setup   'current-window
         org-log-done              'time
@@ -439,17 +445,17 @@
                (:name "Europe"        :tag "Europe")
                (:name "Latin America" :tag "LatinAmerica")
                (:name "Other"         :anything t)))))
-          ("ug" "Global" tags "+Global+PROJECT"
+          ("ug" "Global" tags-todo "+Global+PROJECT/ACTIVE|HOLD"
            ((org-agenda-files '("~/ORG/projects.org"))))
-          ("ua" "Africa" tags "+Africa+PROJECT"
+          ("ua" "Africa" tags-todo "+Africa+PROJECT/ACTIVE|HOLD"
            ((org-agenda-files '("~/ORG/projects.org"))))
-          ("ub" "Arab States" tags "+ArabStates+PROJECT"
+          ("ub" "Arab States" tags-todo "+ArabStates+PROJECT/ACTIVE|HOLD"
            ((org-agenda-files '("~/ORG/projects.org"))))
-          ("ux" "Asia-Pacific" tags "+AsiaPacific+PROJECT"
+          ("ux" "Asia-Pacific" tags-todo "+AsiaPacific+PROJECT/ACTIVE|HOLD"
            ((org-agenda-files '("~/ORG/projects.org"))))
-          ("ue" "Europe" tags "+Europe+PROJECT"
+          ("ue" "Europe" tags-todo "+Europe+PROJECT/ACTIVE|HOLD"
            ((org-agenda-files '("~/ORG/projects.org"))))
-          ("ul" "Latin America & Caribbean" tags "+LatinAmerica+PROJECT"
+          ("ul" "Latin America & Caribbean" tags-todo "+LatinAmerica+PROJECT/ACTIVE|HOLD"
            ((org-agenda-files '("~/ORG/projects.org"))))
           ("uT" "All UNESCO Tasks" todo "TODO|NEXT|WAITING"
            ((org-agenda-files '("~/ORG/projects.org"))
@@ -719,6 +725,10 @@
         mu4e-use-fancy-chars        t
         mu4e-attachment-dir        "~/Downloads")
 
+  ;; org-mu4e: enables %a (email link), %:subject, %:from in capture templates
+  (require 'org-mu4e)
+  (setq org-mu4e-link-query-in-headers-mode nil)
+
   ;; SMTP via macOS Keychain
   (require 'smtpmail)
   (setq message-send-mail-function 'smtpmail-send-it
@@ -760,7 +770,68 @@
                   (smtpmail-stream-type    . ssl)))))
 
   (setq mu4e-context-policy         'pick-first
-        mu4e-compose-context-policy 'ask-if-none))
+        mu4e-compose-context-policy 'ask-if-none)
+
+  (add-to-list 'mu4e-bookmarks
+    '(:name "GTD" :query "to:chapelet+gtd@gmail.com" :key ?g)))
+
+;;; GTD Email Auto-Capture
+(defvar my/gtd-email-ids-file
+  (expand-file-name "gtd-captured-ids.txt" user-emacs-directory)
+  "Tracks message IDs already captured to inbox.org, preventing duplicates across restarts.")
+
+(defun my/gtd-captured-p (msg-id)
+  "Return non-nil if MSG-ID has already been written to inbox.org."
+  (and (file-exists-p my/gtd-email-ids-file)
+       (with-temp-buffer
+         (insert-file-contents my/gtd-email-ids-file)
+         (re-search-forward (regexp-quote msg-id) nil t))))
+
+(defun my/gtd-record-captured (msg-id)
+  "Append MSG-ID to the captured-IDs log."
+  (write-region (concat msg-id "\n") nil my/gtd-email-ids-file 'append))
+
+(defun my/auto-capture-gtd-emails ()
+  "Silently append new unread chapelet+gtd@gmail.com emails to ~/ORG/inbox.org.
+Uses `mu find --format=sexp' to avoid mu4e internal API version churn.
+Deduplicates via message-id persisted in `my/gtd-email-ids-file'."
+  (let* ((mu-bin   (or (executable-find "mu") "/usr/local/bin/mu"))
+         (query    "to:chapelet+gtd@gmail.com flag:unread")
+         (raw      (shell-command-to-string
+                    (format "%s find %s --format=sexp 2>/dev/null"
+                            mu-bin (shell-quote-argument query))))
+         (messages (ignore-errors (read (concat "(" raw ")"))))
+         (count    0))
+    (dolist (msg messages)
+      (let* ((msg-id  (or (plist-get msg :message-id) ""))
+             (subject (or (plist-get msg :subject) "(no subject)"))
+             (from-pl (car (plist-get msg :from)))
+             (from    (or (plist-get from-pl :name)
+                          (plist-get from-pl :email)
+                          "unknown"))
+             (date    (plist-get msg :date)))
+        (unless (or (string-empty-p msg-id) (my/gtd-captured-p msg-id))
+          (with-current-buffer (find-file-noselect "~/ORG/inbox.org")
+            (goto-char (point-max))
+            (insert (format "\n* TODO %s\n  :PROPERTIES:\n  :CREATED: %s\n  :FROM: %s\n  :END:\n"
+                            subject
+                            (format-time-string "[%Y-%m-%d %a %H:%M]"
+                                                (seconds-to-time (or date 0)))
+                            from))
+            (save-buffer))
+          (my/gtd-record-captured msg-id)
+          (cl-incf count))))
+    (when (> count 0)
+      (message "GTD: captured %d email(s) to inbox.org" count))))
+
+(add-hook 'mu4e-index-updated-hook #'my/auto-capture-gtd-emails)
+
+(defun my/process-gtd-inbox ()
+  "Manually trigger mu4e sync and GTD email capture."
+  (interactive)
+  (mu4e-update-mail-and-index t))
+
+(global-set-key (kbd "C-c g i") #'my/process-gtd-inbox)
 
 (message (emacs-init-time))
 
