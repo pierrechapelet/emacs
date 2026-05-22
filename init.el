@@ -265,6 +265,7 @@
   :bind (("C-c c"   . org-capture)
          ("C-c a"   . org-agenda)
          ("C-c o h" . my/consult-org-all-headings)
+         ("C-c o /" . (lambda () (interactive) (consult-ripgrep "~/ORG/")))
          ("C-c o c" . my/org-set-countries)
          ("C-c o r" . my/org-set-region)
          ("C-c o l" . my/org-insert-heading-link))
