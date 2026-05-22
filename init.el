@@ -161,6 +161,15 @@
 
 (use-package embark-consult)
 
+(use-package consult
+  :bind (("C-x b"   . consult-buffer)              ; buffer switcher with preview
+         ("C-x 4 b" . consult-buffer-other-window)
+         ("C-x p b" . consult-project-buffer)       ; project-scoped buffer switch
+         ("M-y"     . consult-yank-pop)             ; searchable kill ring
+         ("M-g g"   . consult-goto-line)))
+
+(use-package wgrep)   ; C-c C-e in any grep/ripgrep buffer → edit matches in-place
+
 ;; === Writing & Org ===
 (defun human-text-on ()
   "Enable visual line mode and line numbers for prose buffers."
@@ -169,6 +178,7 @@
 
 (add-hook 'text-mode-hook #'human-text-on)
 (add-hook 'org-mode-hook  #'human-text-on)
+(add-hook 'org-mode-hook  #'flyspell-mode)
 
 (setq org-image-actual-width      500
       org-support-shift-select    t
@@ -708,7 +718,9 @@
   :bind ("C-c C-'" . claude-code-ide-menu)
   :config (claude-code-ide-emacs-tools-setup))
 
-(setq claude-code-ide-terminal-backend 'vterm)
+(setq claude-code-ide-terminal-backend 'vterm
+      claude-code-ide-vterm-anti-flicker t
+      claude-code-ide-vterm-render-delay 0.005)
 
 ;; === Email (mu4e) ===
 (use-package mu4e
